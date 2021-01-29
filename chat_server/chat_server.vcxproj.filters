@@ -18,9 +18,15 @@
     <ClInclude Include="chat_message.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="struct_header.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="chat_server.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="struct_header.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

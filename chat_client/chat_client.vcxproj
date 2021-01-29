@@ -79,7 +79,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>E:\code_tools\boost_1_72_0\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>E:\code_tools\boost_1_72_0\;../chat_server</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -129,9 +129,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="chat_client.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="chat_message.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

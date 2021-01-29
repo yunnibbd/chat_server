@@ -1,4 +1,4 @@
-#include <iostream>
+ï»¿#include <iostream>
 #include <deque>
 #include <list>
 #include <memory>
@@ -20,38 +20,25 @@ public:
 	using chat_session_ptr = shared_ptr<chat_session>;
 
 	/**
-	 * @brief ¿Í»§¶Ë¼ÓÈëÊÂ¼ş
-	 * @param cp ¿Í»§¶ËÖÇÄÜÖ¸Õë
+	 * @brief å®¢æˆ·ç«¯åŠ å…¥äº‹ä»¶
+	 * @param cp å®¢æˆ·ç«¯æ™ºèƒ½æŒ‡é’ˆ
 	 * @return
 	 */
-	void join(chat_session_ptr cp) {
-		chat_sessions_.insert(cp);
-		for (const auto &msg : recent_msgs_)
-			cp->deliver(msg);
-	}
+	void join(chat_session_ptr cp);
 
 	/**
-	 * @brief ¿Í»§¶ËÀë¿ªÊÂ¼ş
-	 * @param cp ¿Í»§¶ËÖÇÄÜÖ¸Õë
+	 * @brief å®¢æˆ·ç«¯ç¦»å¼€äº‹ä»¶
+	 * @param cp å®¢æˆ·ç«¯æ™ºèƒ½æŒ‡é’ˆ
 	 * @return
 	 */
-	void leave(chat_session_ptr cp) {
-		chat_sessions_.erase(cp);
-	}
+	void leave(chat_session_ptr cp);
 
 	/**
-	 * @brief ¸øËùÓĞ¿Í»§¶Ë·Ö·¢ÏûÏ¢
-	 * @param msg ÏûÏ¢ÒıÓÃ
+	 * @brief ç»™æ‰€æœ‰å®¢æˆ·ç«¯åˆ†å‘æ¶ˆæ¯
+	 * @param msg æ¶ˆæ¯å¼•ç”¨
 	 * @return
 	 */
-	void deliver(const chat_message &msg) {
-		recent_msgs_.push_back(msg);
-		while (recent_msgs_.size() > max_recent_msgs)
-			recent_msgs_.pop_front();
-
-		for (auto &p : chat_sessions_)
-			p->deliver(msg);
-	}
+	void deliver(const chat_message &msg);
 
 private:
 	set<chat_session_ptr> chat_sessions_;
@@ -69,7 +56,7 @@ public:
 	}
 
 	/**
-	 * @brief ´¥·¢¿Í»§¶Ë¼ÓÈëÊÂ¼ş²¢¶ÁÈ¡ÏûÏ¢Í·
+	 * @brief è§¦å‘å®¢æˆ·ç«¯åŠ å…¥äº‹ä»¶å¹¶è¯»å–æ¶ˆæ¯å¤´
 	 * @param
 	 * @return
 	 */
@@ -79,22 +66,22 @@ public:
 	}
 
 	/**
-	 * @brief ½«ÏûÏ¢·¢ËÍµ½·şÎñ¶Ë
-	 * @param msg ÏûÏ¢ÒıÓÃ
+	 * @brief å°†æ¶ˆæ¯å‘é€åˆ°æœåŠ¡ç«¯
+	 * @param msg æ¶ˆæ¯å¼•ç”¨
 	 * @return
 	 */
 	void deliver(const chat_message &msg) {
 		bool write_in_progress = !write_msgs_.empty();
 		write_msgs_.push_back(msg);
 		if (!write_in_progress) {
-			//±íÊ¾µ±Ç°Ã»ÓĞdo_writeÔÚµ÷ÓÃÁË
+			//è¡¨ç¤ºå½“å‰æ²¡æœ‰do_writeåœ¨è°ƒç”¨äº†
 			do_write();
 		}
 	}
 
 private:
 	/**
-	 * @brief ¶ÁÈ¡ÏûÏ¢Í·
+	 * @brief è¯»å–æ¶ˆæ¯å¤´
 	 * @param
 	 * @return
 	 */
@@ -115,7 +102,7 @@ private:
 	}
 
 	/**
-	 * @brief ¶ÁÈ¡ÏûÏ¢Ìå
+	 * @brief è¯»å–æ¶ˆæ¯ä½“
 	 * @param
 	 * @return
 	 */
@@ -139,7 +126,7 @@ private:
 
 	
 	/**
-	 * @brief ÖØ¸´·¢ËÍÏûÏ¢¶ÓÁĞÖĞµÚÒ»Ìõ,Ö±ÖÁ·¢ËÍÍê³É
+	 * @brief é‡å¤å‘é€æ¶ˆæ¯é˜Ÿåˆ—ä¸­ç¬¬ä¸€æ¡,ç›´è‡³å‘é€å®Œæˆ
 	 * @param
 	 * @return
 	 */
@@ -169,15 +156,50 @@ private:
 	chat_message_queue write_msgs_;
 };
 
+
+/**
+ * @brief å®¢æˆ·ç«¯åŠ å…¥äº‹ä»¶
+ * @param cp å®¢æˆ·ç«¯æ™ºèƒ½æŒ‡é’ˆ
+ * @return
+ */
+void chat_room::join(chat_session_ptr cp) {
+	chat_sessions_.insert(cp);
+	for (const auto &msg : recent_msgs_)
+		cp->deliver(msg);
+}
+
+/**
+ * @brief å®¢æˆ·ç«¯ç¦»å¼€äº‹ä»¶
+ * @param cp å®¢æˆ·ç«¯æ™ºèƒ½æŒ‡é’ˆ
+ * @return
+ */
+void chat_room::leave(chat_session_ptr cp) {
+	chat_sessions_.erase(cp);
+}
+
+/**
+ * @brief ç»™æ‰€æœ‰å®¢æˆ·ç«¯åˆ†å‘æ¶ˆæ¯
+ * @param msg æ¶ˆæ¯å¼•ç”¨
+ * @return
+ */
+void chat_room::deliver(const chat_message &msg) {
+	recent_msgs_.push_back(msg);
+	while (recent_msgs_.size() > max_recent_msgs)
+		recent_msgs_.pop_front();
+
+	for (auto &p : chat_sessions_)
+		p->deliver(msg);
+}
+
 //chat server
 class chat_server {
 public:
 	/**
-	 * @brief ¹¹Ôìº¯Êı,²¢Í¶µİÒ»¸ö½ÓÊÜ¿Í»§¶ËµÄÈÎÎñ
+	 * @brief æ„é€ å‡½æ•°,å¹¶æŠ•é€’ä¸€ä¸ªæ¥å—å®¢æˆ·ç«¯çš„ä»»åŠ¡
 	 * @param io_service
-	 * @param endpoint ·şÎñ¶ËĞ­ÒéºÍ¶Ë¿Ú
-	 * @param server_id ²âÊÔÓÃ,±¾·şÎñµÄid
-	 * @return ·µ»Øµ±Ç°Àà¶ÔÏó
+	 * @param endpoint æœåŠ¡ç«¯åè®®å’Œç«¯å£
+	 * @param server_id æµ‹è¯•ç”¨,æœ¬æœåŠ¡çš„id
+	 * @return è¿”å›å½“å‰ç±»å¯¹è±¡
 	 */
 	chat_server(boost::asio::io_service &io_service,
 		const tcp::endpoint &endpoint, int server_id = -1) 
@@ -188,7 +210,7 @@ public:
 
 private:
 	/**
-	 * @brief ½ÓÊÜĞÂ¿Í»§¶Ë
+	 * @brief æ¥å—æ–°å®¢æˆ·ç«¯
 	 * @param
 	 * @return
 	 */

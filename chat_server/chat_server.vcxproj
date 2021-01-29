@@ -129,9 +129,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="chat_server.cpp" />
+    <ClCompile Include="struct_header.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="chat_message.h" />
+    <ClInclude Include="struct_header.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

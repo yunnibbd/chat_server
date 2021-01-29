@@ -1,8 +1,9 @@
-#include <iostream>
+﻿#include <iostream>
 #include <thread>
 #include <cstdlib>
 #include <deque>
 #include <cstring>
+#include <string>
 #include <boost/asio.hpp>
 #include "chat_message.h"
 #pragma comment(lib, "libboost_exception-vc141-mt-gd-x32-1_72.lib")
@@ -124,10 +125,14 @@ int main(int argc, const char* const* argv) {
 		char line[chat_message::max_body_length + 1] = { 0 };
 		while (std::cin.getline(line, chat_message::max_body_length + 1)) {
 			chat_message msg;
-			msg.body_length(std::strlen(line));
-			std::memcpy(msg.body(), line, msg.body_length());
-			msg.encode_header();
-			c.write(msg);
+			auto type = 0;
+			string input(line, line + strlen(line));
+			string output;
+			if (parse_message(input, &type, output)) {
+				msg.set_message(type, output.data(), output.size());
+				c.write(msg);
+				cout << "write message for server " << output.size() << endl;
+			}
 		}
 		c.close();
 		t.join();

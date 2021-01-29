@@ -1,11 +1,13 @@
-#pragma once
+﻿#pragma once
 #include <cstdlib>
+#include <cassert>
 #include <iostream>
 #include <cstring>
+#include "struct_header.h"
 
 class chat_message {
 public:
-	enum { header_length = 4 };
+	enum { header_length = sizeof(Header) };
 	enum { max_body_length = 512 };
 	chat_message() {}
 
@@ -26,37 +28,46 @@ public:
 	}
 
 	size_t body_length() {
-		return body_length_;
+		return header_.body_size_;
 	}
 
 	void body_length(size_t new_length) {
-		body_length_ = new_length;
-		if (body_length_ > max_body_length) {
-			body_length_ = max_body_length;
+		header_.body_size_ = new_length;
+		if (header_.body_size_ > max_body_length) {
+			header_.body_size_ = max_body_length;
 		}
 	}
 
 	size_t length() const {
-		return header_length + body_length_;
+		return header_length + header_.body_size_;
+	}
+
+	/**
+	 * @brief 将本类对象的消息类型，消息体，消息头都设置好，并将数据都存入data_里
+	 * @param message_type 消息类型
+	 * @param buffer 消息体指针
+	 * @param buffer_size 消息体长度
+	 * @return
+	 */
+	void set_message(int message_type, const void *buffer, size_t buffer_size) {
+		assert(buffer_size <= max_body_length);
+		header_.body_size_ = buffer_size;
+		header_.type_ = message_type;
+		memcpy(body(), buffer, buffer_size);
+		memcpy(data(), &header_, header_length);
 	}
 
 	bool decode_header() {
 		char header[header_length + 1] = "";
 		strncat(header, data_, header_length);
-		body_length_ = atoi(header);
-		if (body_length_ > max_body_length) {
-			body_length_ = 0;
+		header_.body_size_ = atoi(header);
+		if (header_.body_size_ > max_body_length) {
+			header_.body_size_ = 0;
 			return false;
 		}
 		return true;
 	}
-
-	void encode_header() {
-		char header[header_length + 1] = "";
-		sprintf(header, "%4d", static_cast<int>(body_length_));
-		memcpy(data_, header, header_length);
-	}
 private:
-	size_t body_length_ = 0;
+	Header header_;
 	char data_[header_length + max_body_length] = { 0 };
 };
