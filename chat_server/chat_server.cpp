@@ -113,8 +113,8 @@ private:
 			boost::asio::buffer(read_msg_.body(), read_msg_.body_length()),
 			[this, self](boost::system::error_code ec, size_t) {
 				if (!ec) {
-					room_.deliver(read_msg_);
-					cout << "recv from client:" << read_msg_.body() << endl;
+					//room_.deliver(read_msg_);
+					handle_message();
 					do_read_header();
 				}
 				else {
@@ -124,7 +124,44 @@ private:
 		);
 	}
 
+	/**
+	 * @brief 根据消息类型处理消息
+	 * @param
+	 * @return
+	 */
+	void handle_message() {
+		auto type = read_msg_.type();
+		if (type == MT_BIND_NAME) {
+			const BindName *bind = reinterpret_cast<const BindName *>(read_msg_.body());
+			bind_name_string_.assign(bind->name, bind->name_len);
+		}
+		else if (type == MT_CHAT_INFO) {
+			const ChatInformation *chat = reinterpret_cast<const ChatInformation *>(read_msg_.body());
+			chat_information_string_.assign(chat->infomation, chat->infomation_len);
+			auto rinfo = build_room_info();
+			chat_message msg;
+			msg.set_message(MT_ROOM_INFO, &rinfo, sizeof(rinfo));
+			room_.deliver(msg);
+		}
+		else {
+			
+		}
+	}
 	
+	/**
+	 * @brief 根据绑定好的名字构造一个聊天室信息
+	 * @param
+	 * @return RoomInfomation 返回一个聊天室的信息
+	 */
+	RoomInfomation build_room_info() {
+		RoomInfomation info;
+		info.name_.name_len = bind_name_string_.size();
+		memcpy(info.name_.name, bind_name_string_.data(), bind_name_string_.size());
+		info.chat_.infomation_len = chat_information_string_.size();
+		memcpy(info.chat_.infomation, chat_information_string_.data(), chat_information_string_.size());
+		return info;
+	}
+
 	/**
 	 * @brief 重复发送消息队列中第一条,直至发送完成
 	 * @param
@@ -154,6 +191,8 @@ private:
 	chat_room &room_;
 	chat_message read_msg_;
 	chat_message_queue write_msgs_;
+	string bind_name_string_;
+	string chat_information_string_;
 };
 
 

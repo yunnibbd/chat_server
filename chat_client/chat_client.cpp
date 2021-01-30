@@ -4,6 +4,7 @@
 #include <deque>
 #include <cstring>
 #include <string>
+#include <cassert>
 #include <boost/asio.hpp>
 #include "chat_message.h"
 #pragma comment(lib, "libboost_exception-vc141-mt-gd-x32-1_72.lib")
@@ -14,12 +15,23 @@ using chat_message_queue = deque<chat_message>;
 
 class chat_client {
 public:
+	/**
+	 * @brief 构造
+	 * @param io_service
+	 * @param endpoint_iterator 对端信息
+	 * @return 本类对象
+	 */
 	chat_client(boost::asio::io_service &io_service,
 				tcp::resolver::iterator endpoint_iterator):
 				io_service_(io_service), socket_(io_service){
 		do_connect(endpoint_iterator);
 	}
 
+	/**
+	 * @brief 将消息往服务端发送
+	 * @param msg 消息引用
+	 * @return
+	 */
 	void write(const chat_message &msg) {
 		io_service_.post([this, msg]() {
 			bool write_in_progress = !write_msgs_.empty();
@@ -30,6 +42,11 @@ public:
 		});
 	}
 	
+	/**
+	 * @brief 关闭本客户端的socket
+	 * @param
+	 * @return
+	 */
 	void close() {
 		io_service_.post([this]() {
 			socket_.close();
@@ -37,6 +54,11 @@ public:
 	}
 
 private:
+	/**
+	 * @brief 异步连接服务端
+	 * @param endpoint_iterator 对端信息
+	 * @return
+	 */
 	void do_connect(tcp::resolver::iterator endpoint_iterator) {
 		boost::asio::async_connect(
 			socket_,
@@ -49,6 +71,11 @@ private:
 		);
 	}
 
+	/**
+	 * @brief 读取消息头
+	 * @param
+	 * @return
+	 */
 	void do_read_header() {
 		boost::asio::async_read(
 			socket_,
@@ -64,14 +91,26 @@ private:
 		);
 	}
 
+	/**
+	 * @brief 读取消息体
+	 * @param
+	 * @return
+	 */
 	void do_read_body() {
 		boost::asio::async_read(
 			socket_,
 			boost::asio::buffer(read_msg_.body(), read_msg_.body_length()),
 			[this](boost::system::error_code ec, size_t) {
 				if (!ec) {
-					cout.write(read_msg_.body(), read_msg_.body_length());
-					cout << "\n";
+					if (read_msg_.body_length() == sizeof(RoomInfomation) && 
+						read_msg_.type() == MT_ROOM_INFO) {
+						const RoomInfomation *info = reinterpret_cast<RoomInfomation *>(read_msg_.body());
+						cout << "client: '";
+						cout.write(info->name_.name, info->name_.name_len);
+						cout << "' say '";
+						cout.write(info->chat_.infomation, info->chat_.infomation_len);
+						cout << endl;
+					}
 					do_read_header();
 				}
 				else {
@@ -81,6 +120,11 @@ private:
 		);
 	}
 
+	/**
+	 * @brief 将要发送的消息一直发送直至没有消息发送
+	 * @param
+	 * @return
+	 */
 	void do_write() {
 		boost::asio::async_write(
 			socket_,
@@ -107,7 +151,7 @@ private:
 };
 
 int main(int argc, const char* const* argv) {
-	const char* ip = "192.168.0.103";
+	const char* ip = "192.168.0.102";
 	const char* port = "8000";
 	if (argc > 2) {
 		ip = argv[1];

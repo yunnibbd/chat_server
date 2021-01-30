@@ -18,5 +18,8 @@
     <ClCompile Include="chat_client.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\chat_server\struct_header.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

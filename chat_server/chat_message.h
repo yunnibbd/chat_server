@@ -15,6 +15,10 @@ public:
 		return data_;
 	}
 
+	const int type() {
+		return header_.type_;
+	}
+
 	char* data() {
 		return data_;
 	}
@@ -58,9 +62,9 @@ public:
 	}
 
 	bool decode_header() {
-		char header[header_length + 1] = "";
-		strncat(header, data_, header_length);
-		header_.body_size_ = atoi(header);
+		const Header *header = reinterpret_cast<const Header *>(data_);
+		header_.body_size_ = header->body_size_;
+		header_.type_ = header->type_;
 		if (header_.body_size_ > max_body_length) {
 			header_.body_size_ = 0;
 			return false;
