@@ -21,6 +21,9 @@
     <ClInclude Include="struct_header.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="serialize_object.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="chat_server.cpp">

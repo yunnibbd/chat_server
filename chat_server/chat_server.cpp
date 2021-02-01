@@ -3,8 +3,11 @@
 #include <list>
 #include <memory>
 #include <set>
+#include <string>
+#include <sstream>
 #include <cstdlib>
 #include <boost/asio.hpp>
+#include "serialize_object.h"
 #include "chat_message.h"
 #pragma comment(lib, "libboost_exception-vc141-mt-gd-x32-1_72.lib")
 using namespace std;
@@ -125,6 +128,20 @@ private:
 	}
 
 	/**
+	 * @brief 根据读到的消息反序列化程指定的类
+	 * @param
+	 * @return T 自定义类型
+	 */
+	template<typename T>
+	T serialize_object() {
+		T t;
+		stringstream ss(string(read_msg_.body(), read_msg_.body() + read_msg_.body_length()));
+		boost::archive::text_iarchive ia(ss);
+		ia & t;
+		return t;
+	}
+
+	/**
 	 * @brief 根据消息类型处理消息
 	 * @param
 	 * @return
@@ -132,15 +149,15 @@ private:
 	void handle_message() {
 		auto type = read_msg_.type();
 		if (type == MT_BIND_NAME) {
-			const BindName *bind = reinterpret_cast<const BindName *>(read_msg_.body());
-			bind_name_string_.assign(bind->name, bind->name_len);
+			SBindName bind_name = serialize_object<SBindName>();
+			bind_name_string_ = bind_name.bind_name();
 		}
 		else if (type == MT_CHAT_INFO) {
-			const ChatInformation *chat = reinterpret_cast<const ChatInformation *>(read_msg_.body());
-			chat_information_string_.assign(chat->infomation, chat->infomation_len);
+			SChatInfo chat = serialize_object<SChatInfo>();
+			chat_information_string_ = chat.chat_information();
 			auto rinfo = build_room_info();
 			chat_message msg;
-			msg.set_message(MT_ROOM_INFO, &rinfo, sizeof(rinfo));
+			msg.set_message(MT_ROOM_INFO, rinfo);
 			room_.deliver(msg);
 		}
 		else {
@@ -151,15 +168,14 @@ private:
 	/**
 	 * @brief 根据绑定好的名字构造一个聊天室信息
 	 * @param
-	 * @return RoomInfomation 返回一个聊天室的信息
+	 * @return string 返回一个序列化好了的聊天室信息
 	 */
-	RoomInfomation build_room_info() {
-		RoomInfomation info;
-		info.name_.name_len = bind_name_string_.size();
-		memcpy(info.name_.name, bind_name_string_.data(), bind_name_string_.size());
-		info.chat_.infomation_len = chat_information_string_.size();
-		memcpy(info.chat_.infomation, chat_information_string_.data(), chat_information_string_.size());
-		return info;
+	string build_room_info() {
+		SRoomInfo info(bind_name_string_, chat_information_string_);
+		std::stringstream ss;
+		boost::archive::text_oarchive oa(ss);
+		oa & info;
+		return ss.str();
 	}
 
 	/**

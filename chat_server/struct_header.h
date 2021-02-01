@@ -36,3 +36,12 @@ struct RoomInfomation {
  * @return bool 是否解析成功
  */
 bool parse_message(const std::string &input, int *type, std::string &outbuffer);
+
+/**
+ * @brief 使用serialize将用户输入解析并存放到outbuffer中
+ * @param input 用户输入
+ * @param type 用户输入的类型
+ * @param outbuffer 输出
+ * @return bool 是否解析成功
+ */
+bool parse_message2(const std::string &input, int *type, std::string &outbuffer);

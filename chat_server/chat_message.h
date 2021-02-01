@@ -3,6 +3,7 @@
 #include <cassert>
 #include <iostream>
 #include <cstring>
+#include <string>
 #include "struct_header.h"
 
 class chat_message {
@@ -59,6 +60,16 @@ public:
 		header_.type_ = message_type;
 		memcpy(body(), buffer, buffer_size);
 		memcpy(data(), &header_, header_length);
+	}
+
+	/**
+	 * @brief 调用的是set_message(int message_type, const void *buffer, size_t buffer_size)
+	 * @param message_type 消息类型
+	 * @param buffer 消息体string
+	 * @return
+	 */
+	void set_message(int message_type, std::string &buffer) {
+		set_message(message_type, buffer.c_str(), buffer.size());
 	}
 
 	bool decode_header() {

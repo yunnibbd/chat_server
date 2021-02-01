@@ -4,8 +4,10 @@
 #include <deque>
 #include <cstring>
 #include <string>
+#include <sstream>
 #include <cassert>
 #include <boost/asio.hpp>
+#include "serialize_object.h"
 #include "chat_message.h"
 #pragma comment(lib, "libboost_exception-vc141-mt-gd-x32-1_72.lib")
 using namespace std;
@@ -102,14 +104,20 @@ private:
 			boost::asio::buffer(read_msg_.body(), read_msg_.body_length()),
 			[this](boost::system::error_code ec, size_t) {
 				if (!ec) {
-					if (read_msg_.body_length() == sizeof(RoomInfomation) && 
-						read_msg_.type() == MT_ROOM_INFO) {
-						const RoomInfomation *info = reinterpret_cast<RoomInfomation *>(read_msg_.body());
-						cout << "client: '";
-						cout.write(info->name_.name, info->name_.name_len);
-						cout << "' say '";
-						cout.write(info->chat_.infomation, info->chat_.infomation_len);
-						cout << endl;
+					if (read_msg_.type() == MT_ROOM_INFO) {
+						SRoomInfo info;
+						stringstream ss(
+							string(read_msg_.body(), 
+								read_msg_.body() + read_msg_.body_length()
+							)
+						);
+						boost::archive::text_iarchive ia(ss);
+						ia & info;
+						std::cout << "client: '";
+						std::cout << info.name();
+						std::cout << "' says '";
+						std::cout << info.info();
+						std::cout << "'\n";
 					}
 					do_read_header();
 				}
@@ -172,7 +180,7 @@ int main(int argc, const char* const* argv) {
 			auto type = 0;
 			string input(line, line + strlen(line));
 			string output;
-			if (parse_message(input, &type, output)) {
+			if (parse_message2(input, &type, output)) {
 				msg.set_message(type, output.data(), output.size());
 				c.write(msg);
 				cout << "write message for server " << output.size() << endl;
