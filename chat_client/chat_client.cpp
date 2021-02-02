@@ -8,6 +8,7 @@
 #include <cassert>
 #include <boost/asio.hpp>
 #include "serialize_object.h"
+#include "json_object.h"
 #include "chat_message.h"
 #pragma comment(lib, "libboost_exception-vc141-mt-gd-x32-1_72.lib")
 using namespace std;
@@ -105,18 +106,13 @@ private:
 			[this](boost::system::error_code ec, size_t) {
 				if (!ec) {
 					if (read_msg_.type() == MT_ROOM_INFO) {
-						SRoomInfo info;
-						stringstream ss(
-							string(read_msg_.body(), 
-								read_msg_.body() + read_msg_.body_length()
-							)
-						);
-						boost::archive::text_iarchive ia(ss);
-						ia & info;
+						ptree tree;
+						stringstream ss(string(read_msg_.body(), read_msg_.body() + read_msg_.body_length()));
+						boost::property_tree::read_json(ss, tree);
 						std::cout << "client: '";
-						std::cout << info.name();
+						std::cout << tree.get<std::string>("name");
 						std::cout << "' says '";
-						std::cout << info.info();
+						std::cout << tree.get<std::string>("information");
 						std::cout << "'\n";
 					}
 					do_read_header();
@@ -180,7 +176,7 @@ int main(int argc, const char* const* argv) {
 			auto type = 0;
 			string input(line, line + strlen(line));
 			string output;
-			if (parse_message2(input, &type, output)) {
+			if (parse_message3(input, &type, output)) {
 				msg.set_message(type, output.data(), output.size());
 				c.write(msg);
 				cout << "write message for server " << output.size() << endl;

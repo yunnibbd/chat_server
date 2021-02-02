@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <boost/asio.hpp>
 #include "serialize_object.h"
+#include "json_object.h"
 #include "chat_message.h"
 #pragma comment(lib, "libboost_exception-vc141-mt-gd-x32-1_72.lib")
 using namespace std;
@@ -142,6 +143,20 @@ private:
 	}
 
 	/**
+	 * @brief 将收到的消息体转换为ptree，认为是json
+	 * @param
+	 * @return
+	 */
+	ptree to_ptree() {
+		ptree obj;
+		std::stringstream ss(
+			std::string(read_msg_.body(),
+				read_msg_.body() + read_msg_.body_length()));
+		boost::property_tree::read_json(ss, obj);
+		return obj;
+	}
+
+	/**
 	 * @brief 根据消息类型处理消息
 	 * @param
 	 * @return
@@ -149,12 +164,13 @@ private:
 	void handle_message() {
 		auto type = read_msg_.type();
 		if (type == MT_BIND_NAME) {
-			SBindName bind_name = serialize_object<SBindName>();
-			bind_name_string_ = bind_name.bind_name();
+			auto name_tree = to_ptree();
+			bind_name_string_ = name_tree.get<std::string>("name");
 		}
 		else if (type == MT_CHAT_INFO) {
-			SChatInfo chat = serialize_object<SChatInfo>();
-			chat_information_string_ = chat.chat_information();
+			auto chat = to_ptree();
+			chat_information_string_ = chat.get<std::string>("information");
+
 			auto rinfo = build_room_info();
 			chat_message msg;
 			msg.set_message(MT_ROOM_INFO, rinfo);
@@ -171,11 +187,10 @@ private:
 	 * @return string 返回一个序列化好了的聊天室信息
 	 */
 	string build_room_info() {
-		SRoomInfo info(bind_name_string_, chat_information_string_);
-		std::stringstream ss;
-		boost::archive::text_oarchive oa(ss);
-		oa & info;
-		return ss.str();
+		ptree tree;
+		tree.put("name", bind_name_string_);
+		tree.put("information", chat_information_string_);
+		return ptree_to_json_string(tree);
 	}
 
 	/**
