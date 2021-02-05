@@ -10,6 +10,7 @@
 #include "serialize_object.h"
 #include "json_object.h"
 #include "chat_message.h"
+#include "protocol.pb.h"
 #pragma comment(lib, "libboost_exception-vc141-mt-gd-x32-1_72.lib")
 using namespace std;
 using namespace boost::asio::ip;
@@ -106,14 +107,16 @@ private:
 			[this](boost::system::error_code ec, size_t) {
 				if (!ec) {
 					if (read_msg_.type() == MT_ROOM_INFO) {
-						ptree tree;
 						stringstream ss(string(read_msg_.body(), read_msg_.body() + read_msg_.body_length()));
-						boost::property_tree::read_json(ss, tree);
-						std::cout << "client: '";
-						std::cout << tree.get<std::string>("name");
-						std::cout << "' says '";
-						std::cout << tree.get<std::string>("information");
-						std::cout << "'\n";
+						PRoomInformation info;
+						auto ok = info.ParseFromString(ss.str());
+						if (ok) {
+							std::cout << "client: '";
+							std::cout << info.name();
+							std::cout << "' says '";
+							std::cout << info.information();
+							std::cout << "'\n";
+						}
 					}
 					do_read_header();
 				}
@@ -155,7 +158,7 @@ private:
 };
 
 int main(int argc, const char* const* argv) {
-	const char* ip = "192.168.0.102";
+	const char* ip = "192.168.43.115";
 	const char* port = "8000";
 	if (argc > 2) {
 		ip = argv[1];
@@ -164,6 +167,7 @@ int main(int argc, const char* const* argv) {
 		port = argv[2];
 	}
 	try {
+		GOOGLE_PROTOBUF_VERIFY_VERSION;
 		boost::asio::io_service io_service;
 		tcp::resolver resolver(io_service);
 		auto endpoint_iterator = resolver.resolve(ip, port);
@@ -176,7 +180,7 @@ int main(int argc, const char* const* argv) {
 			auto type = 0;
 			string input(line, line + strlen(line));
 			string output;
-			if (parse_message3(input, &type, output)) {
+			if (parse_message4(input, &type, output)) {
 				msg.set_message(type, output.data(), output.size());
 				c.write(msg);
 				cout << "write message for server " << output.size() << endl;
@@ -188,5 +192,7 @@ int main(int argc, const char* const* argv) {
 	catch (exception &e) {
 		cerr << "Exception " << e.what() << endl;
 	}
+
+	google::protobuf::ShutdownProtobufLibrary();
 	return 0;
 }

@@ -21,5 +21,13 @@
     <ClCompile Include="..\chat_server\struct_header.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\chat_server\protocol.pb.cc">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\chat_server\protocol.pb.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

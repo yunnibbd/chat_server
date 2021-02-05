@@ -79,11 +79,13 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>E:\code_tools\boost_1_72_0\;../chat_server</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../include;E:\code_tools\boost_1_72_0\;../chat_server</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalLibraryDirectories>E:\code_tools\boost_1_72_0\stage\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../../lib;E:\code_tools\boost_1_72_0\stage\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libprotobufd.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -128,8 +130,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\chat_server\protocol.pb.cc" />
     <ClCompile Include="..\chat_server\struct_header.cpp" />
     <ClCompile Include="chat_client.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\chat_server\protocol.pb.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
