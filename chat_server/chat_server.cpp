@@ -9,6 +9,7 @@
 #include <boost/asio.hpp>
 #include "serialize_object.h"
 #include "json_object.h"
+#include "protocol.pb.h"
 #include "chat_message.h"
 #pragma comment(lib, "libboost_exception-vc141-mt-gd-x32-1_72.lib")
 using namespace std;
@@ -157,6 +158,17 @@ private:
 	}
 
 	/**
+	 * @brief 使用protobuf解析消息
+	 * @param
+	 * @return
+	 */
+	bool fill_protobuf(::google::protobuf::Message *msg) {
+		string str(read_msg_.body(),
+				   read_msg_.body() + read_msg_.body_length());
+		return msg->ParseFromString(str);
+	}
+
+	/**
 	 * @brief 根据消息类型处理消息
 	 * @param
 	 * @return
@@ -164,17 +176,22 @@ private:
 	void handle_message() {
 		auto type = read_msg_.type();
 		if (type == MT_BIND_NAME) {
-			auto name_tree = to_ptree();
-			bind_name_string_ = name_tree.get<std::string>("name");
+			PBindName bind_name;
+			auto ok = fill_protobuf(&bind_name);
+			if (ok) {
+				bind_name_string_ = bind_name.name();
+			}
 		}
 		else if (type == MT_CHAT_INFO) {
-			auto chat = to_ptree();
-			chat_information_string_ = chat.get<std::string>("information");
-
-			auto rinfo = build_room_info();
-			chat_message msg;
-			msg.set_message(MT_ROOM_INFO, rinfo);
-			room_.deliver(msg);
+			PChat chat;
+			auto ok = fill_protobuf(&chat);
+			if (ok) {
+				chat_information_string_ = chat.information();
+				auto rinfo = build_room_info();
+				chat_message msg;
+				msg.set_message(MT_ROOM_INFO, rinfo);
+				room_.deliver(msg);
+			}
 		}
 		else {
 			
@@ -187,10 +204,10 @@ private:
 	 * @return string 返回一个序列化好了的聊天室信息
 	 */
 	string build_room_info() {
-		ptree tree;
-		tree.put("name", bind_name_string_);
-		tree.put("information", chat_information_string_);
-		return ptree_to_json_string(tree);
+		PRoomInformation info;
+		info.set_name(bind_name_string_);
+		info.set_information(chat_information_string_);
+		return info.SerializeAsString();
 	}
 
 	/**
@@ -314,6 +331,7 @@ int main(int argc, const char *const *argv) {
 	}
 
 	try {
+		GOOGLE_PROTOBUF_VERIFY_VERSION;
 		boost::asio::io_service io_service;
 		list<chat_server> servers;
 		for (int i = 0; i < server_num; ++i) {
@@ -326,5 +344,7 @@ int main(int argc, const char *const *argv) {
 	catch (exception &e) {
 		cerr << "Exception: " << e.what() << endl;
 	}
+
+	google::protobuf::ShutdownProtobufLibrary();
 	return 0;
 }

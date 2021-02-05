@@ -1,6 +1,7 @@
 ﻿#include "struct_header.h"
 #include "serialize_object.h"
 #include "json_object.h"
+#include "protocol.pb.h"
 #include <cstdlib>
 #include <cstring>
 #include <string>
@@ -137,6 +138,46 @@ bool parse_message3(const std::string &input, int *type, std::string &outbuffer)
 		if (type)
 			*type = MT_CHAT_INFO;
 		return true;
+	}
+	return false;
+}
+
+/**
+ * @brief 使用protobuf将用户输入解析为json并存放到outbuffer中
+ * @param input 用户输入
+ * @param type 用户输入的类型
+ * @param outbuffer 输出
+ * @return bool 是否解析成功
+ */
+bool parse_message4(const std::string &input, int *type, std::string &outbuffer) {
+	auto pos = input.find_first_of(" ");
+	if (pos == std::string::npos)
+		return false;
+	if (pos == 0)
+		return false;
+	//"BindName ok" -> substr -> BindName
+	auto command = input.substr(0, pos);
+	if (command == "BindName") {
+		std::string name = input.substr(pos + 1);
+		if (name.size() > 32)
+			return false;
+		if (type)
+			*type = MT_BIND_NAME;
+		PBindName bindName;
+		bindName.set_name(name);
+		auto ok = bindName.SerializeToString(&outbuffer);
+		return ok;
+	}
+	else if (command == "Chat") {
+		std::string chat = input.substr(pos + 1);
+		if (chat.size() > 256)
+			return false;
+		PChat pchat;
+		pchat.set_information(chat);
+		auto ok = pchat.SerializeToString(&outbuffer);
+		if (type)
+			*type = MT_CHAT_INFO;
+		return ok;
 	}
 	return false;
 }

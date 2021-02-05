@@ -27,6 +27,9 @@
     <ClInclude Include="json_object.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="protocol.pb.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="chat_server.cpp">
@@ -35,5 +38,13 @@
     <ClCompile Include="struct_header.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="protocol.pb.cc">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="protocol.proto">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>
