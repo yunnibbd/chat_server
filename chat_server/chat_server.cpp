@@ -5,6 +5,8 @@
 #include <set>
 #include <string>
 #include <sstream>
+#include <mutex>
+#include <thread>
 #include <cstdlib>
 #include <boost/asio.hpp>
 #include "serialize_object.h"
@@ -23,6 +25,11 @@ class chat_session;
 class chat_room {
 public:
 	using chat_session_ptr = shared_ptr<chat_session>;
+
+	chat_room(boost::asio::io_service &io_service) 
+	: strand_(io_service){
+
+	}
 
 	/**
 	 * @brief 客户端加入事件
@@ -46,6 +53,7 @@ public:
 	void deliver(const chat_message &msg);
 
 private:
+	boost::asio::io_service::strand strand_;
 	set<chat_session_ptr> chat_sessions_;
 	chat_message_queue recent_msgs_;
 	enum { max_recent_msgs = 100 };
@@ -55,8 +63,8 @@ private:
 class chat_session :
 	public std::enable_shared_from_this<chat_session>{
 public:
-	chat_session(tcp::socket socket, chat_room &room)
-		: socket_(std::move(socket)), room_(room){
+	chat_session(tcp::socket socket, chat_room &room, boost::asio::io_service& io_service)
+		: socket_(std::move(socket)), room_(room), strand_(io_service) {
 
 	}
 
@@ -76,12 +84,14 @@ public:
 	 * @return
 	 */
 	void deliver(const chat_message &msg) {
-		bool write_in_progress = !write_msgs_.empty();
-		write_msgs_.push_back(msg);
-		if (!write_in_progress) {
-			//表示当前没有do_write在调用了
-			do_write();
-		}
+		strand_.post([this, msg] {
+			bool write_in_progress = !write_msgs_.empty();
+			write_msgs_.push_back(msg);
+			if (!write_in_progress) {
+				// first
+				do_write();
+			}
+		});
 	}
 
 private:
@@ -95,6 +105,7 @@ private:
 		boost::asio::async_read(
 			socket_,
 			boost::asio::buffer(read_msg_.data(), chat_message::header_length),
+			strand_.wrap(
 			[this, self](boost::system::error_code ec, size_t) {
 				if (!ec && read_msg_.decode_header()) {
 					do_read_body();
@@ -102,7 +113,7 @@ private:
 				else {
 					room_.leave(shared_from_this());
 				}
-			}
+			})
 		);
 	}
 
@@ -116,6 +127,7 @@ private:
 		boost::asio::async_read(
 			socket_,
 			boost::asio::buffer(read_msg_.body(), read_msg_.body_length()),
+			strand_.wrap(
 			[this, self](boost::system::error_code ec, size_t) {
 				if (!ec) {
 					//room_.deliver(read_msg_);
@@ -125,7 +137,7 @@ private:
 				else {
 					room_.leave(shared_from_this());
 				}
-			}
+			})
 		);
 	}
 
@@ -217,9 +229,11 @@ private:
 	 */
 	void do_write() {
 		auto self(shared_from_this());
+			
 		boost::asio::async_write(
 			socket_,
 			boost::asio::buffer(write_msgs_.front().data(), write_msgs_.front().length()),
+			strand_.wrap(
 			[this, self](boost::system::error_code ec, size_t) {
 				if (!ec) {
 					write_msgs_.pop_front();
@@ -230,11 +244,12 @@ private:
 				else {
 					room_.leave(shared_from_this());
 				}
-			}
+			})
 		);
 	}
 	
 private:
+	boost::asio::io_service::strand strand_;
 	tcp::socket socket_;
 	chat_room &room_;
 	chat_message read_msg_;
@@ -250,9 +265,11 @@ private:
  * @return
  */
 void chat_room::join(chat_session_ptr cp) {
-	chat_sessions_.insert(cp);
-	for (const auto &msg : recent_msgs_)
-		cp->deliver(msg);
+	strand_.post([this, cp] {
+		chat_sessions_.insert(cp);
+		for (const auto &msg : recent_msgs_)
+			cp->deliver(msg);
+	});
 }
 
 /**
@@ -261,7 +278,9 @@ void chat_room::join(chat_session_ptr cp) {
  * @return
  */
 void chat_room::leave(chat_session_ptr cp) {
-	chat_sessions_.erase(cp);
+	strand_.post([this, cp] {
+		chat_sessions_.erase(cp);
+	});
 }
 
 /**
@@ -270,12 +289,14 @@ void chat_room::leave(chat_session_ptr cp) {
  * @return
  */
 void chat_room::deliver(const chat_message &msg) {
-	recent_msgs_.push_back(msg);
-	while (recent_msgs_.size() > max_recent_msgs)
-		recent_msgs_.pop_front();
+	strand_.post([this, msg] {
+		recent_msgs_.push_back(msg);
+		while (recent_msgs_.size() > max_recent_msgs)
+			recent_msgs_.pop_front();
 
-	for (auto &p : chat_sessions_)
-		p->deliver(msg);
+		for (auto &p : chat_sessions_)
+			p->deliver(msg);
+	});
 }
 
 //chat server
@@ -290,7 +311,7 @@ public:
 	 */
 	chat_server(boost::asio::io_service &io_service,
 		const tcp::endpoint &endpoint, int server_id = -1) 
-		: acceptor_(io_service, endpoint), socket_(io_service), server_id_(server_id) {
+		: room_(io_service), io_service_(io_service), acceptor_(io_service, endpoint), socket_(io_service), server_id_(server_id) {
 		cout << "server " << server_id << " start!" << endl;
 		do_accept();
 	}
@@ -304,9 +325,10 @@ private:
 	void do_accept() {
 		acceptor_.async_accept(socket_, [this](boost::system::error_code ec) {
 			if (!ec) {
+				
 				cout << socket_.remote_endpoint().address()
 					 << ":" << socket_.remote_endpoint().port() << " join" << endl;
-				auto session = make_shared<chat_session>(std::move(socket_), room_);
+				auto session = make_shared<chat_session>(std::move(socket_), room_, io_service_);
 				session->start();
 			}
 			do_accept();
@@ -316,6 +338,7 @@ private:
 private:
 	int server_id_ = -1;
 	tcp::acceptor acceptor_;
+	boost::asio::io_service &io_service_;
 	tcp::socket socket_;
 	chat_room room_;
 };
@@ -339,7 +362,15 @@ int main(int argc, const char *const *argv) {
 			servers.emplace_back(io_service, endpoint, i);
 		}
 
+		vector<thread> thread_group;
+		for (int i = 0; i < server_num; ++i) {
+			thread_group.emplace_back([&io_service]() { io_service.run(); });
+		}
+
 		io_service.run();
+
+		for (auto &t : thread_group)
+			t.join();
 	}
 	catch (exception &e) {
 		cerr << "Exception: " << e.what() << endl;

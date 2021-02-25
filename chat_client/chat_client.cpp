@@ -2,6 +2,8 @@
 #include <thread>
 #include <cstdlib>
 #include <deque>
+#include <memory>
+#include <vector>
 #include <cstring>
 #include <string>
 #include <sstream>
@@ -158,7 +160,7 @@ private:
 };
 
 int main(int argc, const char* const* argv) {
-	const char* ip = "192.168.43.115";
+	const char* ip = "192.168.0.102";
 	const char* port = "8000";
 	if (argc > 2) {
 		ip = argv[1];
@@ -171,7 +173,11 @@ int main(int argc, const char* const* argv) {
 		boost::asio::io_service io_service;
 		tcp::resolver resolver(io_service);
 		auto endpoint_iterator = resolver.resolve(ip, port);
-		chat_client c(io_service, endpoint_iterator);
+		vector<unique_ptr<chat_client>> client_group;
+
+		for (int i = 0; i < 5; ++i) {
+			client_group.emplace_back(make_unique<chat_client>(io_service, endpoint_iterator));
+		}
 		this_thread::sleep_for(1000ms);
 		thread t([&io_service]() { io_service.run(); });
 		char line[chat_message::max_body_length + 1] = { 0 };
@@ -182,11 +188,13 @@ int main(int argc, const char* const* argv) {
 			string output;
 			if (parse_message4(input, &type, output)) {
 				msg.set_message(type, output.data(), output.size());
-				c.write(msg);
+				for (auto &c : client_group)
+					c->write(msg);
 				cout << "write message for server " << output.size() << endl;
 			}
 		}
-		c.close();
+		for (auto &c : client_group)
+			c->close();
 		t.join();
 	}
 	catch (exception &e) {
